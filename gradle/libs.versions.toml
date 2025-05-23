@@ -1,0 +1,50 @@
+[versions]
+activity = "1.10.1"
+agp = "8.10.0"
+appcompatVersion = "1.6.1"
+compiler = "4.16.0"
+constraintlayout = "2.2.1"
+desugar_jdk_libs = "2.1.5"
+googleApiClientAndroid = "2.7.2"
+googleApiClientGson = "1.33.0"
+googleApiClientGsonVersion = "1.35.0'"
+googleApiServicesDrive = "v3-rev202-1.25.0"
+googleApiServicesDriveVersion = "v3-rev20230815-2.0.0"
+googleOauthClientJetty = "1.33.1"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+appcompat = "1.7.0"
+material = "1.12.0"
+materialVersion = "1.11.0"
+playServicesAuth = "21.3.0"
+playServicesAuthVersion = "21.0.0"
+playServicesBase = "18.7.0"
+playServicesBaseVersion = "18.7.0"
+
+[libraries]
+activity = { module = "androidx.activity:activity", version.ref = "activity" }
+appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompatVersion" }
+compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "compiler" }
+constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+gms-play-services-base = { module = " com.google.android.gms:play-services-base", version.ref = "playServicesBaseVersion" }
+google-api-client-android = { module = "com.google.api-client:google-api-client-android", version.ref = "googleApiClientAndroid" }
+google-api-client-gson = { module = "com.google.api-client:google-api-client-gson", version.ref = "googleApiClientGson" }
+google-api-client-gson-v1350 = { module = "com.google.api-client:google-api-client-gson", version.ref = "googleApiClientGsonVersion" }
+google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "googleApiServicesDrive" }
+google-api-services-drive-vv3rev20230815200 = { module = "com.google.apis:google-api-services-drive", version.ref = "googleApiServicesDriveVersion" }
+google-oauth-client-jetty = { module = "com.google.oauth-client:google-oauth-client-jetty", version.ref = "googleOauthClientJetty" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+material-v1110 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+play-services-auth-v2100 = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuthVersion" }
+play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "playServicesBase" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+
