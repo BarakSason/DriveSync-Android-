@@ -30,8 +30,12 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.client.http.HttpRequestInitializer;
+
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.net.SocketException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
@@ -58,9 +62,13 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> signInLauncher;
     private ActivityResultLauncher<Intent> folderPickerLauncher;
 
+    // Use a single ExecutorService for all background tasks
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: Activity created");
         setContentView(R.layout.activity_main);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -86,36 +94,55 @@ public class MainActivity extends AppCompatActivity {
         txtDriveFolderPath = findViewById(R.id.txtDriveFolderPath);
         txtLocalFolderPath = findViewById(R.id.txtLocalFolderPath);
 
-        closeButton.setOnClickListener(v -> finishAffinity());
+        closeButton.setOnClickListener(v -> {
+            Log.d(TAG, "closeButton: Closing app");
+            executorService.shutdownNow();
+            finishAffinity();
+        });
 
-        signInButton.setOnClickListener(view -> signIn());
+        signInButton.setOnClickListener(view -> {
+            Log.d(TAG, "signInButton: Clicked");
+            signIn();
+        });
+
         syncButton.setOnClickListener(v -> {
+            Log.d(TAG, "syncButton: Clicked");
             if (localDirUri == null) {
+                Log.d(TAG, "syncButton: No localDirUri, picking local directory");
                 pickLocalDirectory();
             } else if (selectedDriveFolderId == null) {
+                Log.d(TAG, "syncButton: No selectedDriveFolderId, picking Drive folder");
                 pickDriveFolder();
             } else {
+                Log.d(TAG, "syncButton: Starting syncDriveFolder");
                 syncDriveFolder();
             }
         });
 
         selectDriveFolderButton.setOnClickListener(v -> {
+            Log.d(TAG, "selectDriveFolderButton: Clicked");
             if (driveService == null) {
+                Log.w(TAG, "selectDriveFolderButton: Drive service is null, sign in first");
                 Toast.makeText(this, "Sign in to Google first.", Toast.LENGTH_SHORT).show();
                 return;
             }
             pickDriveFolder();
         });
 
-        selectLocalFolderButton.setOnClickListener(v -> pickLocalDirectory());
+        selectLocalFolderButton.setOnClickListener(v -> {
+            Log.d(TAG, "selectLocalFolderButton: Clicked");
+            pickLocalDirectory();
+        });
 
         signInLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    Log.d(TAG, "signInLauncher: Result received");
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                         Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
                         handleSignInResult(task);
                     } else {
+                        Log.w(TAG, "signInLauncher: Sign-in canceled or failed");
                         updateUI(null);
                     }
                 }
@@ -124,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
         folderPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    Log.d(TAG, "folderPickerLauncher: Result received");
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                         Uri returnedUri = result.getData().getData();
                         if (returnedUri != null) {
@@ -132,17 +160,21 @@ public class MainActivity extends AppCompatActivity {
                             try {
                                 getContentResolver().takePersistableUriPermission(localDirUri, modeFlags);
                                 Toast.makeText(this, "Folder access granted. Ready to sync.", Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, "folderPickerLauncher: Folder access granted " + localDirUri);
                                 saveLocalFolderUri(localDirUri);
                             } catch (SecurityException e) {
+                                Log.e(TAG, "folderPickerLauncher: Failed to get persistent access", e);
                                 txtStatusSAF.setText("Error: Failed to get persistent access to the folder.");
                                 Toast.makeText(this, "Failed to get persistent access to the folder.", Toast.LENGTH_LONG).show();
                                 localDirUri = null;
                             }
                         } else {
+                            Log.w(TAG, "folderPickerLauncher: No folder selected");
                             txtStatusSAF.setText("No folder selected.");
                         }
                         updateFolderPathViews();
                     } else {
+                        Log.w(TAG, "folderPickerLauncher: Folder selection canceled or failed");
                         txtStatusSAF.setText("Folder selection canceled or failed.");
                     }
                 }
@@ -153,10 +185,11 @@ public class MainActivity extends AppCompatActivity {
         String localUriString = prefs.getString(KEY_LOCAL_FOLDER_URI, null);
         if (localUriString != null) {
             localDirUri = Uri.parse(localUriString);
+            Log.d(TAG, "onCreate: Restored localDirUri from prefs: " + localDirUri);
             if (localDirUri != null && !isSAFDirectoryAccessible(localDirUri)) {
-                // Folder no longer exists or is not accessible
+                Log.w(TAG, "onCreate: localDirUri not accessible, clearing");
                 localDirUri = null;
-                saveLocalFolderUri(null); // Clear from SharedPreferences
+                saveLocalFolderUri(null);
             }
         } else {
             List<android.content.UriPermission> persistedUriPermissions = getContentResolver().getPersistedUriPermissions();
@@ -167,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
                         Uri candidateUri = permission.getUri();
                         if (isSAFDirectoryAccessible(candidateUri)) {
                             localDirUri = candidateUri;
+                            Log.d(TAG, "onCreate: Restored localDirUri from persisted permissions: " + localDirUri);
                             break;
                         }
                     }
@@ -184,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d(TAG, "onStart: Activity started");
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         updateUI(account);
         if (account != null) {
@@ -192,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void signIn() {
+        Log.d(TAG, "signIn: Launching sign-in intent");
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         signInLauncher.launch(signInIntent);
     }
@@ -199,17 +235,20 @@ public class MainActivity extends AppCompatActivity {
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
+            Log.d(TAG, "handleSignInResult: Sign-in successful for " + (account != null ? account.getEmail() : "null"));
             updateUI(account);
             if (account != null) {
                 setupDriveService(account);
             }
         } catch (ApiException e) {
+            Log.e(TAG, "handleSignInResult: Sign-in failed", e);
             Toast.makeText(this, "Sign in failed: " + e.getStatusCode(), Toast.LENGTH_SHORT).show();
             updateUI(null);
         }
     }
 
     private void updateUI(GoogleSignInAccount account) {
+        Log.d(TAG, "updateUI: " + (account != null ? "Signed in" : "Signed out"));
         if (account != null) {
             userName.setText(account.getDisplayName());
             userEmail.setText(account.getEmail());
@@ -232,6 +271,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateFolderPathViews() {
+        Log.d(TAG, "updateFolderPathViews: DriveFolder=" + selectedDriveFolderName + ", LocalUri=" + localDirUri);
         if (selectedDriveFolderName != null && !selectedDriveFolderName.isEmpty()) {
             txtDriveFolderPath.setText(selectedDriveFolderName);
             txtDriveFolderPath.setVisibility(View.VISIBLE);
@@ -250,6 +290,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateStatusMessage() {
+        Log.d(TAG, "updateStatusMessage: DriveFolder=" + selectedDriveFolderName + ", LocalUri=" + localDirUri);
         if (selectedDriveFolderName == null || selectedDriveFolderName.isEmpty()) {
             txtStatusSAF.setText("Please select a Drive folder to sync from.");
         } else if (localDirUri == null) {
@@ -260,6 +301,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveLocalFolderUri(Uri uri) {
+        Log.d(TAG, "saveLocalFolderUri: " + uri);
         SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
         if (uri == null) {
             editor.remove(KEY_LOCAL_FOLDER_URI);
@@ -270,6 +312,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveDriveFolderSelection(String folderId, String folderName) {
+        Log.d(TAG, "saveDriveFolderSelection: id=" + folderId + ", name=" + folderName);
         SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
         editor.putString(KEY_DRIVE_FOLDER_ID, folderId);
         editor.putString(KEY_DRIVE_FOLDER_NAME, folderName);
@@ -277,6 +320,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void pickLocalDirectory() {
+        Log.d(TAG, "pickLocalDirectory: Launching folder picker");
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
@@ -285,7 +329,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void pickDriveFolder() {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        Log.d(TAG, "pickDriveFolder: Listing Drive folders");
+        executorService.execute(() -> {
             try {
                 FileList result = driveService.files().list()
                         .setQ("mimeType = 'application/vnd.google-apps.folder' and trashed = false")
@@ -294,6 +339,7 @@ public class MainActivity extends AppCompatActivity {
                         .setPageSize(100)
                         .execute();
                 List<File> folders = result.getFiles();
+                Log.d(TAG, "pickDriveFolder: Found " + (folders != null ? folders.size() : 0) + " folders");
                 if (folders == null || folders.isEmpty()) {
                     runOnUiThread(() -> Toast.makeText(this, "No folders found in Drive.", Toast.LENGTH_SHORT).show());
                     return;
@@ -312,17 +358,20 @@ public class MainActivity extends AppCompatActivity {
                                 saveDriveFolderSelection(selectedDriveFolderId, selectedDriveFolderName);
                                 updateFolderPathViews();
                                 Toast.makeText(this, "Selected: " + selectedDriveFolderName, Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, "pickDriveFolder: Selected folder " + selectedDriveFolderName);
                             })
                             .setNegativeButton("Cancel", null)
                             .show();
                 });
             } catch (Exception e) {
+                Log.e(TAG, "pickDriveFolder: Failed to list Drive folders", e);
                 runOnUiThread(() -> Toast.makeText(this, "Failed to list Drive folders: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         });
     }
 
     private void setupDriveService(GoogleSignInAccount account) {
+        Log.d(TAG, "setupDriveService: Setting up Drive service for " + (account != null ? account.getEmail() : "null"));
         GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
                 this, Collections.singleton(DriveScopes.DRIVE_READONLY));
         credential.setSelectedAccount(account.getAccount());
@@ -340,6 +389,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isSAFDirectoryAccessible(Uri dirUri) {
+        Log.d(TAG, "isSAFDirectoryAccessible: Checking " + dirUri);
         try {
             Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
                     dirUri, DocumentsContract.getTreeDocumentId(dirUri));
@@ -352,17 +402,21 @@ public class MainActivity extends AppCompatActivity {
                 return hasData;
             }
         } catch (Exception e) {
+            Log.e(TAG, "isSAFDirectoryAccessible: Exception", e);
             return false;
         }
     }
 
     private void syncDriveFolder() {
+        Log.d(TAG, "syncDriveFolder: Starting sync");
         if (driveService == null) {
+            Log.w(TAG, "syncDriveFolder: Drive service is null");
             txtStatusSAF.setText("Not signed in. Please sign in to Google.");
             Toast.makeText(this, "Please sign in first.", Toast.LENGTH_SHORT).show();
             return;
         }
         if (localDirUri == null || !isSAFDirectoryAccessible(localDirUri)) {
+            Log.w(TAG, "syncDriveFolder: Local directory not accessible");
             txtStatusSAF.setText("Local directory not found. Please pick a folder.");
             Toast.makeText(this, "Local folder not found. Please select a new folder.", Toast.LENGTH_SHORT).show();
             localDirUri = null;
@@ -370,6 +424,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         if (selectedDriveFolderId == null || selectedDriveFolderName == null) {
+            Log.w(TAG, "syncDriveFolder: No Drive folder selected");
             txtStatusSAF.setText("No Drive folder selected. Please select a folder.");
             Toast.makeText(this, "Please select a Drive folder.", Toast.LENGTH_SHORT).show();
             return;
@@ -386,10 +441,12 @@ public class MainActivity extends AppCompatActivity {
             txtProgressCount.setText("0/0");
         });
 
-        Executors.newSingleThreadExecutor().execute(() -> {
+        executorService.execute(() -> {
             try {
                 List<File> driveFiles = listFilesInDriveFolder(driveService, selectedDriveFolderId);
+                Log.d(TAG, "syncDriveFolder: Found " + driveFiles.size() + " files in Drive folder");
                 Map<String, Long> localFiles = listLocalSAFFilesWithModified(localDirUri);
+                Log.d(TAG, "syncDriveFolder: Found " + localFiles.size() + " files in local folder");
                 Set<String> driveFileNames = new HashSet<>();
 
                 List<File> filesToSync = new ArrayList<>();
@@ -414,8 +471,10 @@ public class MainActivity extends AppCompatActivity {
                     boolean isNew = (localFileModifiedTime == null);
                     if (downloadDriveFileToSAF(driveService, driveFile, localDirUri)) {
                         if (isNew) downloadedCount++; else updatedCount++;
+                        Log.d(TAG, "syncDriveFolder: Downloaded/Updated " + driveFile.getName());
                     } else {
                         failedCount++;
+                        Log.e(TAG, "syncDriveFolder: Failed to download " + driveFile.getName());
                     }
                     syncedCount++;
                     final int progress = (int) (((syncedCount) * 100.0f) / (totalToSync == 0 ? 1 : totalToSync));
@@ -434,6 +493,7 @@ public class MainActivity extends AppCompatActivity {
                     if (!driveFileNames.contains(localFile)) {
                         if (deleteLocalSAFFile(localDirUri, localFile)) {
                             deletedCount++;
+                            Log.d(TAG, "syncDriveFolder: Deleted local file " + localFile);
                         }
                     }
                 }
@@ -450,9 +510,11 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     txtProgressPercent.setVisibility(View.GONE);
                     txtProgressCount.setVisibility(View.GONE);
+                    Log.d(TAG, "syncDriveFolder: " + summary);
                 });
 
             } catch (Exception e) {
+                Log.e(TAG, "syncDriveFolder: Sync failed", e);
                 runOnUiThread(() -> {
                     txtStatusSAF.setText("Sync failed: " + e.getMessage());
                     progressBar.setVisibility(View.GONE);
@@ -464,6 +526,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private List<File> listFilesInDriveFolder(Drive driveService, String folderId) throws Exception {
+        Log.d(TAG, "listFilesInDriveFolder: Listing files in folderId=" + folderId);
         String query = "'" + folderId + "' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'";
         FileList result = driveService.files().list()
                 .setQ(query)
@@ -472,12 +535,14 @@ public class MainActivity extends AppCompatActivity {
                 .setPageSize(1000)
                 .execute();
         if (result.getFiles() == null) {
+            Log.d(TAG, "listFilesInDriveFolder: No files found");
             return Collections.emptyList();
         }
         return result.getFiles();
     }
 
     private Map<String, Long> listLocalSAFFilesWithModified(Uri dirUri) {
+        Log.d(TAG, "listLocalSAFFilesWithModified: Listing files in " + dirUri);
         Map<String, Long> fileMap = new HashMap<>();
         ContentResolver resolver = getContentResolver();
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(dirUri, DocumentsContract.getTreeDocumentId(dirUri));
@@ -498,37 +563,53 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error listing local SAF files in: " + dirUri, e);
+            Log.e(TAG, "listLocalSAFFilesWithModified: Error listing local SAF files in: " + dirUri, e);
         }
         return fileMap;
     }
 
     private boolean downloadDriveFileToSAF(Drive driveService, File driveFile, Uri localDirUri) {
+        Log.d(TAG, "downloadDriveFileToSAF: Downloading " + driveFile.getName());
         String mimeType = driveFile.getMimeType() != null ? driveFile.getMimeType() : "application/octet-stream";
         Uri newFileUri = createFileInSAFDirectory(localDirUri, driveFile.getName(), mimeType);
-        if (newFileUri == null) return false;
+        if (newFileUri == null) {
+            Log.e(TAG, "downloadDriveFileToSAF: Failed to create file in SAF directory");
+            return false;
+        }
         try (OutputStream out = getContentResolver().openOutputStream(newFileUri, "wt")) {
-            if (out == null) return false;
+            if (out == null) {
+                Log.e(TAG, "downloadDriveFileToSAF: OutputStream is null");
+                return false;
+            }
             driveService.files().get(driveFile.getId()).executeMediaAndDownloadTo(out);
+            Log.d(TAG, "downloadDriveFileToSAF: Downloaded " + driveFile.getName());
             return true;
+        } catch (InterruptedIOException | SocketException e) {
+            Log.i(TAG, "downloadDriveFileToSAF: Download interrupted/canceled for " + driveFile.getName());
+            try { DocumentsContract.deleteDocument(getContentResolver(), newFileUri); } catch (Exception ignore) {}
+            return false;
         } catch (Exception e) {
+            Log.e(TAG, "downloadDriveFileToSAF: Failed to download due to app shutdown " + driveFile.getName(), e);
             try { DocumentsContract.deleteDocument(getContentResolver(), newFileUri); } catch (Exception ignore) {}
             return false;
         }
     }
 
     private Uri createFileInSAFDirectory(Uri treeUri, String fileName, String mimeType) {
+        Log.d(TAG, "createFileInSAFDirectory: Creating file " + fileName + " in " + treeUri);
         try {
             Uri existingFileUri = findFileInSAFDirectory(treeUri, fileName);
             if (existingFileUri != null) return existingFileUri;
             Uri parentDocumentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri));
             return DocumentsContract.createDocument(getContentResolver(), parentDocumentUri, mimeType, fileName);
         } catch (Exception e) {
+            Log.e(TAG, "createFileInSAFDirectory: Exception", e);
             return null;
         }
     }
 
     private Uri findFileInSAFDirectory(Uri treeUri, String fileName) {
+        Log.d(TAG, "findFileInSAFDirectory: Searching for " + fileName + " in " + treeUri);
         ContentResolver resolver = getContentResolver();
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri));
         try (Cursor cursor = resolver.query(childrenUri,
@@ -543,11 +624,14 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            Log.e(TAG, "findFileInSAFDirectory: Exception", e);
+        }
         return null;
     }
 
     private boolean deleteLocalSAFFile(Uri dirUri, String fileName) {
+        Log.d(TAG, "deleteLocalSAFFile: Deleting " + fileName + " from " + dirUri);
         ContentResolver resolver = getContentResolver();
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(dirUri, DocumentsContract.getTreeDocumentId(dirUri));
         try (Cursor cursor = resolver.query(childrenUri,
@@ -567,11 +651,14 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            Log.e(TAG, "deleteLocalSAFFile: Exception", e);
+        }
         return false;
     }
 
     private String getFileNameFromUri(Uri uri) {
+        Log.d(TAG, "getFileNameFromUri: " + uri);
         if (uri == null) return "Unknown";
         String docId = DocumentsContract.getTreeDocumentId(uri);
         if (docId != null) {
