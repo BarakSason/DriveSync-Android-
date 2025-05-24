@@ -62,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> signInLauncher;
     private ActivityResultLauncher<Intent> folderPickerLauncher;
 
-    // Use a single ExecutorService for all background tasks
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Override
@@ -180,7 +179,6 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-        // Restore localDirUri from persisted permissions or SharedPreferences
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String localUriString = prefs.getString(KEY_LOCAL_FOLDER_URI, null);
         if (localUriString != null) {
@@ -208,7 +206,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Restore Drive folder selection from SharedPreferences
         selectedDriveFolderId = prefs.getString(KEY_DRIVE_FOLDER_ID, null);
         selectedDriveFolderName = prefs.getString(KEY_DRIVE_FOLDER_NAME, null);
 
@@ -249,7 +246,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateUI(GoogleSignInAccount account) {
         Log.d(TAG, "updateUI: " + (account != null ? "Signed in" : "Signed out"));
-        if (account != null) {
+        boolean isUserSignedIn = account != null;
+        if (isUserSignedIn) {
             userName.setText(account.getDisplayName());
             userEmail.setText(account.getEmail());
             if (account.getPhotoUrl() != null) {
@@ -261,11 +259,13 @@ public class MainActivity extends AppCompatActivity {
             signInButton.setVisibility(View.GONE);
             syncButton.setVisibility(View.VISIBLE);
             selectDriveFolderButton.setVisibility(View.VISIBLE);
+            selectLocalFolderButton.setVisibility(View.VISIBLE);
         } else {
             userCard.setVisibility(View.GONE);
             signInButton.setVisibility(View.VISIBLE);
             syncButton.setVisibility(View.GONE);
             selectDriveFolderButton.setVisibility(View.GONE);
+            selectLocalFolderButton.setVisibility(View.GONE);
         }
         updateFolderPathViews();
     }
@@ -291,7 +291,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateStatusMessage() {
         Log.d(TAG, "updateStatusMessage: DriveFolder=" + selectedDriveFolderName + ", LocalUri=" + localDirUri);
-        if (selectedDriveFolderName == null || selectedDriveFolderName.isEmpty()) {
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        boolean isUserSignedIn = account != null;
+        if (!isUserSignedIn) {
+            txtStatusSAF.setText("Please sign in to Google to start syncing.");
+        } else if (selectedDriveFolderName == null || selectedDriveFolderName.isEmpty()) {
             txtStatusSAF.setText("Please select a Drive folder to sync from.");
         } else if (localDirUri == null) {
             txtStatusSAF.setText("Please select a local folder to sync to.");

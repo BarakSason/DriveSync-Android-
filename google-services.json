@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "428034950072",
+    "project_id": "drivesync-9ef39",
+    "storage_bucket": "drivesync-9ef39.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428034950072:android:9e1c04e427dfd63935c54d",
+        "android_client_info": {
+          "package_name": "com.barak.drivesync"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "428034950072-0nkl16bbocv8v77sq4qpg2i2v8tls1rl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.barak.drivesync",
+            "certificate_hash": "14e2a90b2ea453ee2519bb059ebc9309e72d4a61"
+          }
+        },
+        {
+          "client_id": "428034950072-3tlrdbgcodo1bd02hdestf7i8tbktban.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.barak.drivesync",
+            "certificate_hash": "578a43fc03111565b81dffb37ed6e03c3cf2bd22"
+          }
+        },
+        {
+          "client_id": "428034950072-35od0055kr46a084j39riiteqim53gfc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7B7dcTW7tEIDyJ9vPjLVgevbaYbVTrgs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "428034950072-35od0055kr46a084j39riiteqim53gfc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
