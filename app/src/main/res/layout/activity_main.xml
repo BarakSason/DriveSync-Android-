@@ -11,6 +11,7 @@
     android:paddingStart="24dp"
     android:paddingEnd="24dp">
 
+    <!-- Top: Sign in and user info -->
     <com.google.android.gms.common.SignInButton
         android:id="@+id/sign_in_button"
         android:layout_width="wrap_content"
@@ -64,20 +65,79 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
+    <!-- Space to push controls to the middle -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Folder selection controls (moved up) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <Button
+            android:id="@+id/select_drive_folder_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Drive Folder" />
+
+        <TextView
+            android:id="@+id/txtDriveFolderPath"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:gravity="center_horizontal"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="14sp"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/select_local_folder_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Local Folder" />
+
+        <TextView
+            android:id="@+id/txtLocalFolderPath"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:gravity="center_horizontal"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="14sp"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Sync button -->
+    <Button
+        android:id="@+id/sync_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sync Drive to local folder"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"/>
+
+    <!-- Status and progress fields (moved under sync button) -->
     <TextView
         android:id="@+id/txtStatusSAF"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="8dp"
         android:gravity="center_horizontal"
-        android:textAppearance="?android:attr/textAppearanceMedium" />
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:layout_marginTop="8dp" />
 
     <ProgressBar
         android:id="@+id/progressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:visibility="gone"
         android:max="100" />
 
@@ -99,52 +159,18 @@
         android:visibility="gone"
         android:paddingBottom="8dp"/>
 
-    <Button
-        android:id="@+id/select_drive_folder_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Drive Folder" />
-
-    <TextView
-        android:id="@+id/txtDriveFolderPath"
+    <!-- Space to push close button to the bottom -->
+    <Space
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:gravity="center_horizontal"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="14sp"
-        android:paddingBottom="8dp"
-        android:visibility="gone" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
-    <Button
-        android:id="@+id/select_local_folder_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Local Folder" />
-
-    <TextView
-        android:id="@+id/txtLocalFolderPath"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:gravity="center_horizontal"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="14sp"
-        android:paddingBottom="8dp"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/sync_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Sync Drive to local folder"
-        android:layout_marginTop="16dp"
-        android:visibility="gone"/>
-
+    <!-- Bottom: Close App button -->
     <Button
         android:id="@+id/close_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Close App"
+        android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"/>
 </LinearLayout>

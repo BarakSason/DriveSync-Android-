@@ -172,9 +172,11 @@ public class MainActivity extends AppCompatActivity {
                             txtStatusSAF.setText("No folder selected.");
                         }
                         updateFolderPathViews();
+                        updateSyncButtonState();
                     } else {
                         Log.w(TAG, "folderPickerLauncher: Folder selection canceled or failed");
                         txtStatusSAF.setText("Folder selection canceled or failed.");
+                        updateSyncButtonState();
                     }
                 }
         );
@@ -210,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
         selectedDriveFolderName = prefs.getString(KEY_DRIVE_FOLDER_NAME, null);
 
         updateFolderPathViews();
+        updateSyncButtonState();
     }
 
     @Override
@@ -268,6 +271,7 @@ public class MainActivity extends AppCompatActivity {
             selectLocalFolderButton.setVisibility(View.GONE);
         }
         updateFolderPathViews();
+        updateSyncButtonState();
     }
 
     private void updateFolderPathViews() {
@@ -287,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         updateStatusMessage();
+        updateSyncButtonState();
     }
 
     private void updateStatusMessage() {
@@ -302,6 +307,12 @@ public class MainActivity extends AppCompatActivity {
         } else {
             txtStatusSAF.setText("Ready to sync: " + selectedDriveFolderName + " \u2192 " + getFileNameFromUri(localDirUri));
         }
+    }
+
+    private void updateSyncButtonState() {
+        boolean isDriveSelected = selectedDriveFolderName != null && !selectedDriveFolderName.isEmpty();
+        boolean isLocalSelected = localDirUri != null;
+        syncButton.setEnabled(isDriveSelected && isLocalSelected);
     }
 
     private void saveLocalFolderUri(Uri uri) {
@@ -361,6 +372,7 @@ public class MainActivity extends AppCompatActivity {
                                 selectedDriveFolderName = selected.getName();
                                 saveDriveFolderSelection(selectedDriveFolderId, selectedDriveFolderName);
                                 updateFolderPathViews();
+                                updateSyncButtonState();
                                 Toast.makeText(this, "Selected: " + selectedDriveFolderName, Toast.LENGTH_SHORT).show();
                                 Log.d(TAG, "pickDriveFolder: Selected folder " + selectedDriveFolderName);
                             })
