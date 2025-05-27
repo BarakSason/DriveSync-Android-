@@ -63,4 +63,4 @@ All dependencies are managed via Gradle.
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+Licensed under the [Apache-2.0 License](LICENSE).
