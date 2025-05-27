@@ -1,4 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">DriveSync</string>
     <string name="profile_picture">Profile picture</string>
+    <string name="status_sign_in">Please sign in to Google to start syncing.</string>
+    <string name="status_select_drive_folder">Please select a Drive folder to sync from.</string>
+    <string name="status_select_local_folder">Please select a local folder to sync to.</string>
+    <string name="status_ready_to_sync">Ready to sync: %1$s \u2192 %2$s</string>
+    <string name="status_not_signed_in">Not signed in. Please sign in to Google.</string>
+    <string name="status_local_not_found">Local directory not found. Please pick a folder.</string>
+    <string name="status_drive_not_selected">No Drive folder selected. Please select a folder.</string>
+    <string name="status_syncing">Syncing \'%1$s\' to %2$s…</string>
+    <string name="status_sync_failed">Sync failed: %1$s</string>
+    <string name="status_sync_complete">Sync complete. Downloaded: %1$d, Updated: %2$d, Skipped: %3$d, Failed: %4$d, Deleted: %5$d</string>
+    <string name="progress_percent">%1$d%%</string>
+    <string name="progress_count">%1$d/%2$d</string>
 </resources>
