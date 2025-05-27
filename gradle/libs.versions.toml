@@ -4,12 +4,14 @@ agp = "8.10.0"
 appcompatVersion = "1.6.1"
 compiler = "4.16.0"
 constraintlayout = "2.2.1"
+coreKtx = "1.16.0"
 desugar_jdk_libs = "2.1.5"
 googleApiClientAndroid = "2.7.2"
 googleApiClientGson = "1.33.0"
 googleApiClientGsonVersion = "1.35.0'"
 googleApiServicesDrive = "v3-rev202-1.25.0"
 googleApiServicesDriveVersion = "v3-rev20230815-2.0.0"
+googleGoogleApiClientGson = "1.35.0"
 googleOauthClientJetty = "1.33.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -24,10 +26,13 @@ playServicesBaseVersion = "18.7.0"
 
 [libraries]
 activity = { module = "androidx.activity:activity", version.ref = "activity" }
+api-client-google-api-client-gson-v1350 = { module = "com.google.api-client:google-api-client-gson", version.ref = "googleGoogleApiClientGson" }
 appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompatVersion" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "compiler" }
 constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+glide = { module = "com.github.bumptech.glide:glide", version.ref = "compiler" }
 gms-play-services-base = { module = " com.google.android.gms:play-services-base", version.ref = "playServicesBaseVersion" }
 google-api-client-android = { module = "com.google.api-client:google-api-client-android", version.ref = "googleApiClientAndroid" }
 google-api-client-gson = { module = "com.google.api-client:google-api-client-gson", version.ref = "googleApiClientGson" }

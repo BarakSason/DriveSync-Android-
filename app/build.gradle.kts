@@ -38,21 +38,21 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.16.0")
+    implementation(libs.core.ktx)
     implementation(libs.appcompat.v161)
     implementation(libs.material.v1110)
     implementation(libs.constraintlayout)
     implementation(libs.activity)
 
-    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation(libs.glide)
     annotationProcessor(libs.compiler)
 
     implementation(libs.play.services.auth)
     implementation(libs.play.services.base)
 
     implementation(libs.google.api.client.android)
-    implementation("com.google.api-client:google-api-client-gson:1.35.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20230815-2.0.0")
+    implementation(libs.api.client.google.api.client.gson.v1350)
+    implementation(libs.google.api.services.drive.vv3rev20230815200)
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
