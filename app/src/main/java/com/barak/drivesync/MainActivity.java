@@ -2,9 +2,7 @@ package com.barak.drivesync;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ContentResolver;
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.*;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -30,6 +28,7 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.client.http.HttpRequestInitializer;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -63,6 +62,57 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> folderPickerLauncher;
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    // --- BroadcastReceiver for FCM sync actions ---
+    private final BroadcastReceiver driveSyncReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String changeType = intent.getStringExtra(DriveSyncMessagingService.EXTRA_CHANGE_TYPE);
+            String fileName = intent.getStringExtra(DriveSyncMessagingService.EXTRA_FILE_NAME);
+            String modifiedStr = intent.getStringExtra(DriveSyncMessagingService.EXTRA_MODIFIED);
+            Log.d(TAG, "driveSyncReceiver: Received action " + changeType + " for file " + fileName);
+
+            if (changeType == null || fileName == null) return;
+            if (driveService == null || localDirUri == null) {
+                Log.w(TAG, "driveSyncReceiver: Drive service or localDirUri is null, skipping");
+                return;
+            }
+
+            executorService.execute(() -> {
+                try {
+                    switch (changeType) {
+                        case "created":
+                            if (!localFileExists(fileName)) {
+                                File driveFile = findDriveFileByName(fileName);
+                                if (driveFile != null) {
+                                    downloadDriveFileToSAF(driveService, driveFile, localDirUri);
+                                    Log.d(TAG, "driveSyncReceiver: Created file " + fileName);
+                                }
+                            }
+                            break;
+                        case "update":
+                            long remoteModified = 0;
+                            try { remoteModified = modifiedStr != null ? Long.parseLong(modifiedStr) : 0; } catch (Exception ignore) {}
+                            Long localModified = getLocalFileModifiedTime(fileName);
+                            if (localModified == null || remoteModified > localModified) {
+                                File driveFile = findDriveFileByName(fileName);
+                                if (driveFile != null) {
+                                    downloadDriveFileToSAF(driveService, driveFile, localDirUri);
+                                    Log.d(TAG, "driveSyncReceiver: Updated file " + fileName);
+                                }
+                            }
+                            break;
+                        case "delete":
+                            deleteLocalSAFFile(localDirUri, fileName);
+                            Log.d(TAG, "driveSyncReceiver: Deleted file " + fileName);
+                            break;
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "driveSyncReceiver: Exception handling sync", e);
+                }
+            });
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,6 +263,29 @@ public class MainActivity extends AppCompatActivity {
 
         updateFolderPathViews();
         updateSyncButtonState();
+
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                        return;
+                    }
+                    String token = task.getResult();
+                    Log.d(TAG, "FCM Token: " + token);
+                });
+
+        // Register the broadcast receiver for FCM sync
+        registerReceiver(
+                driveSyncReceiver,
+                new IntentFilter(DriveSyncMessagingService.ACTION_SYNC),
+                Context.RECEIVER_NOT_EXPORTED
+        );
+        // Handle notification tap (app launched from notification)
+        Intent intent = getIntent();
+        if (intent != null && intent.getBooleanExtra("trigger_sync", false)) {
+            Log.d(TAG, "onCreate: Trigger sync from notification tap");
+            syncDriveFolder();
+        }
     }
 
     @Override
@@ -224,6 +297,13 @@ public class MainActivity extends AppCompatActivity {
         if (account != null) {
             setupDriveService(account);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(driveSyncReceiver);
+        executorService.shutdownNow();
     }
 
     private void signIn() {
@@ -686,5 +766,45 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return "Unknown";
+    }
+
+    // --- FCM sync helpers ---
+
+    private boolean localFileExists(String fileName) {
+        return findFileInSAFDirectory(localDirUri, fileName) != null;
+    }
+
+    private Long getLocalFileModifiedTime(String fileName) {
+        ContentResolver resolver = getContentResolver();
+        Uri fileUri = findFileInSAFDirectory(localDirUri, fileName);
+        if (fileUri == null) return null;
+        try (Cursor cursor = resolver.query(fileUri,
+                new String[]{DocumentsContract.Document.COLUMN_LAST_MODIFIED},
+                null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getLong(0);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getLocalFileModifiedTime: Exception", e);
+        }
+        return null;
+    }
+
+    private File findDriveFileByName(String fileName) {
+        try {
+            String query = "'" + selectedDriveFolderId + "' in parents and trashed = false and name = '" + fileName.replace("'", "\\'") + "'";
+            FileList result = driveService.files().list()
+                    .setQ(query)
+                    .setSpaces("drive")
+                    .setFields("files(id, name, modifiedTime, md5Checksum, mimeType, size)")
+                    .setPageSize(1)
+                    .execute();
+            if (result.getFiles() != null && !result.getFiles().isEmpty()) {
+                return result.getFiles().get(0);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "findDriveFileByName: Exception", e);
+        }
+        return null;
     }
 }

@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -8,11 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "com.barak.drivesync"
-        minSdk = 26
+        minSdk = 33
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.google.api.client.android)
     implementation("com.google.api-client:google-api-client-gson:1.35.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20230815-2.0.0")
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
